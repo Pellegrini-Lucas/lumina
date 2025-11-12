@@ -133,19 +133,19 @@ class ProjectsDrillDown extends TableWidget
                     ->label('Estado')
                     ->badge()
                     ->color(fn ($state) => match ($state->value) {
-                        'pending' => 'warning',
-                        'in_progress' => 'info',
-                        'completed' => 'success',
-                        'cancelled' => 'danger',
+                        'pendiente' => 'warning',
+                        'en_progreso' => 'info',
+                        'completado' => 'success',
+                        'cancelado' => 'danger',
                     }),
 
                 TextColumn::make('priority')
                     ->label('Prioridad')
                     ->badge()
                     ->color(fn ($state) => match ($state->value) {
-                        'low' => 'gray',
-                        'medium' => 'info',
-                        'high' => 'danger',
+                        'baja' => 'gray',
+                        'media' => 'info',
+                        'alta' => 'danger',
                     }),
 
                 TextColumn::make('subtasks_count')
