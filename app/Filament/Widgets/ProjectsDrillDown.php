@@ -133,6 +133,9 @@ class ProjectsDrillDown extends TableWidget
                         'baja' => 'gray',
                         'media' => 'info',
                         'alta' => 'danger',
+                        'baja' => 'gray',
+                        'media' => 'info',
+                        'alta' => 'danger',
                     }),
 
                 TextColumn::make('subtasks_count')
