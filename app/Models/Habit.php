@@ -73,6 +73,7 @@ class Habit extends Model
 
     public function getCurrentStreak(): int
     {
+        // Si no hay completaciones, la racha es 0
         $completions = $this->completions()
             ->orderBy('completed_at', 'desc')
             ->limit(100)
@@ -83,43 +84,59 @@ class Habit extends Model
         }
 
         $streak = 0;
-        $lastDate = null;
+        $expectedDate = Carbon::today();
 
-        foreach ($completions as $completion) {
-            $completedAt = Carbon::parse($completion->completed_at);
-            
-            if ($streak === 0) {
-                // Primera completación - debe ser hoy o ayer
-                if ($completedAt->isToday() || $completedAt->isYesterday()) {
-                    $streak = 1;
-                    $lastDate = $completedAt;
-                } else {
-                    break;
+        // La racha solo cuenta si la última completación fue hoy o en la fecha esperada anterior
+        $lastCompletion = Carbon::parse($completions->first()->completed_at);
+        
+        // Si la última completación no es hoy ni ayer (para hábitos diarios), la racha está rota
+        if (!$lastCompletion->isToday()) {
+            // Para hábitos no diarios, verificar si estamos dentro del período permitido
+            if ($this->frequency === HabitFrequency::Daily) {
+                if (!$lastCompletion->isYesterday()) {
+                    return 0;
                 }
             } else {
-                // Verificar que sea consecutivo según la frecuencia
-                $daysDiff = $lastDate->diffInDays($completedAt);
-                
-                if ($this->frequency === HabitFrequency::Daily) {
-                    if ($daysDiff === ($this->daily_interval ?? 1)) {
-                        $streak++;
-                        $lastDate = $completedAt;
-                    } else {
-                        break;
-                    }
-                } else {
-                    // Para semanal y mensual, simplificar la verificación
-                    if ($daysDiff >= 1 && $daysDiff <= 31) {
-                        $streak++;
-                        $lastDate = $completedAt;
-                    } else {
-                        break;
-                    }
+                // Para semanal/mensual, verificar si ya pasó la fecha esperada
+                if ($this->next_due_date && Carbon::parse($this->next_due_date)->isPast()) {
+                    return 0;
                 }
             }
         }
 
+        // Contar rachas consecutivas hacia atrás
+        foreach ($completions as $completion) {
+            $completedAt = Carbon::parse($completion->completed_at);
+            
+            // Primera iteración: siempre cuenta
+            if ($streak === 0) {
+                $streak = 1;
+                $expectedDate = $this->calculatePreviousExpectedDate($completedAt);
+                continue;
+            }
+
+            // Verificar si esta completación coincide con la fecha esperada anterior
+            // Permitir un margen de 1 día
+            if ($completedAt->isSameDay($expectedDate) || 
+                $completedAt->diffInDays($expectedDate, false) === 0) {
+                $streak++;
+                $expectedDate = $this->calculatePreviousExpectedDate($completedAt);
+            } else {
+                // Si no coincide, la racha se rompe
+                break;
+            }
+        }
+
         return $streak;
+    }
+
+    private function calculatePreviousExpectedDate(Carbon $fromDate): Carbon
+    {
+        return match ($this->frequency) {
+            HabitFrequency::Daily => $fromDate->copy()->subDays($this->daily_interval ?? 1),
+            HabitFrequency::Weekly => $fromDate->copy()->subWeeks($this->weekly_interval ?? 1),
+            HabitFrequency::Monthly => $fromDate->copy()->subMonths($this->monthly_interval ?? 1),
+        };
     }
 
     public function isDueToday(): bool
