@@ -13,13 +13,27 @@ class EditProject extends EditRecord
 {
     protected static string $resource = ProjectResource::class;
 
+    protected static ?string $title = 'Editar Proyecto';
+
+    protected static ?string $breadcrumb = 'Editar';
+
+    protected function getSaveFormAction(): \Filament\Actions\Action
+    {
+        return parent::getSaveFormAction()->label('Guardar cambios');
+    }
+
+    protected function getCancelFormAction(): \Filament\Actions\Action
+    {
+        return parent::getCancelFormAction()->label('Cancelar');
+    }
+
     protected function getHeaderActions(): array
     {
         return [
-            ViewAction::make(),
-            DeleteAction::make(),
-            ForceDeleteAction::make(),
-            RestoreAction::make(),
+            ViewAction::make()->label('Ver'),
+            DeleteAction::make()->label('Eliminar'),
+            ForceDeleteAction::make()->label('Eliminar permanentemente'),
+            RestoreAction::make()->label('Restaurar'),
         ];
     }
 }

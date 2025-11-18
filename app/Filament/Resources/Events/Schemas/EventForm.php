@@ -24,11 +24,35 @@ class EventForm
                     ->maxLength(255)
                     ->columnSpanFull(),
 
+                Toggle::make('is_all_day')
+                    ->label('Evento de Todo el Día')
+                    ->default(false)
+                    ->live()
+                    ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                        if ($state) {
+                            $startTime = $get('start_time');
+                            if ($startTime) {
+                                $date = \Carbon\Carbon::parse($startTime);
+                                $endTime = $date->copy()->setTime(23, 59, 59);
+                                $set('end_time', $endTime->format('Y-m-d H:i:s'));
+                            }
+                        }
+                    })
+                    ->columnSpanFull(),
+
                 DateTimePicker::make('start_time')
                     ->label('Fecha y Hora de Inicio')
                     ->required()
                     ->native(false)
-                    ->seconds(false),
+                    ->seconds(false)
+                    ->live()
+                    ->afterStateUpdated(function ($state, callable $set, callable $get) {
+                        if ($get('is_all_day') && $state) {
+                            $date = \Carbon\Carbon::parse($state);
+                            $endTime = $date->copy()->setTime(23, 59, 59);
+                            $set('end_time', $endTime->format('Y-m-d H:i:s'));
+                        }
+                    }),
 
                 DateTimePicker::make('end_time')
                     ->label('Fecha y Hora de Fin')
@@ -36,12 +60,8 @@ class EventForm
                     ->native(false)
                     ->seconds(false)
                     ->locale('es')
-                    ->after('start_time'),
-
-                Toggle::make('is_all_day')
-                    ->label('Evento de Todo el Día')
-                    ->default(false)
-                    ->columnSpanFull(),
+                    ->after('start_time')
+                    ->hidden(fn (callable $get) => $get('is_all_day')),
             ]);
     }
 }

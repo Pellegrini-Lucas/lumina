@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\Auth;
 
 class ProjectsDrillDown extends TableWidget
 {
-    protected static ?int $sort = 5;
+    protected static ?int $sort = 6;
 
     protected int|string|array $columnSpan = 'full';
 
@@ -60,9 +60,7 @@ class ProjectsDrillDown extends TableWidget
                     ->weight('bold')
                     ->color('primary')
                     ->description('Haz clic para ver tareas →')
-                    ->action(function (Project $record) {
-                        $this->drillDown($record->id);
-                    }),
+                    ->action(fn (Project $record) => $this->drillDown($record->id)),
 
                 TextColumn::make('tasks_count')
                     ->label('Total Tareas')
@@ -75,7 +73,7 @@ class ProjectsDrillDown extends TableWidget
                     ->color('success')
                     ->getStateUsing(function (Project $record) {
                         return $record->tasks()
-                            ->where('status', 'completed')
+                            ->where('status', 'completado')
                             ->count();
                     }),
 
@@ -85,27 +83,17 @@ class ProjectsDrillDown extends TableWidget
                     ->color('warning')
                     ->getStateUsing(function (Project $record) {
                         return $record->tasks()
-                            ->where('status', 'pending')
+                            ->where('status', 'pendiente')
                             ->count();
                     }),
-
-                TextColumn::make('progress')
-                    ->label('Progreso')
-                    ->formatStateUsing(function (Project $record) {
-                        $total = $record->tasks_count;
-                        if ($total === 0) {
-                            return '0%';
-                        }
-                        $completed = $record->tasks()->where('status', 'completed')->count();
-
-                        return round(($completed / $total) * 100).'%';
-                    })
-                    ->badge()
-                    ->color(fn (Project $record) => $this->getProgressColor($record)),
             ])
-            ->recordUrl(fn (Project $record) => null)
+            ->recordAction(null)
             ->recordClasses('cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800')
-            ->striped();
+            ->striped()
+            ->contentGrid([
+                'md' => 1,
+            ])
+            ->deferLoading();
     }
 
     private function tasksTable(Table $table): Table
@@ -125,27 +113,26 @@ class ProjectsDrillDown extends TableWidget
                     ->weight('bold')
                     ->color('primary')
                     ->description('Haz clic para ver subtareas →')
-                    ->action(function (Task $record) {
-                        $this->drillDown($record->id);
-                    }),
+                    ->action(fn (Task $record) => $this->drillDown($record->id)),
 
                 TextColumn::make('status')
                     ->label('Estado')
                     ->badge()
                     ->color(fn ($state) => match ($state->value) {
-                        'pending' => 'warning',
-                        'in_progress' => 'info',
-                        'completed' => 'success',
-                        'cancelled' => 'danger',
+                        'pendiente' => 'warning',
+                        'en_progreso' => 'info',
+                        'completado' => 'success',
+                        'cancelada' => 'danger',
+                        'vencida' => 'danger',
                     }),
 
                 TextColumn::make('priority')
                     ->label('Prioridad')
                     ->badge()
                     ->color(fn ($state) => match ($state->value) {
-                        'low' => 'gray',
-                        'medium' => 'info',
-                        'high' => 'danger',
+                        'baja' => 'gray',
+                        'media' => 'info',
+                        'alta' => 'danger',
                     }),
 
                 TextColumn::make('subtasks_count')
@@ -177,7 +164,7 @@ class ProjectsDrillDown extends TableWidget
                         $this->projectId = null;
                     }),
             ])
-            ->recordUrl(fn (Task $record) => null)
+            ->recordAction(null)
             ->recordClasses('cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800')
             ->striped();
     }
@@ -233,7 +220,7 @@ class ProjectsDrillDown extends TableWidget
         if ($total === 0) {
             return 'gray';
         }
-        $completed = $record->tasks()->where('status', 'completed')->count();
+        $completed = $record->tasks()->where('status', 'completado')->count();
         $percentage = ($completed / $total) * 100;
 
         return match (true) {

@@ -69,27 +69,30 @@ class PerformanceIndicator extends StatsOverviewWidget
 
             // Card de total de tareas
             Stat::make('Total Tareas', $totalTasksWithDueDate)
-                ->description('Con vencimiento (últimos 30 días)')
+                ->description('Con vencimiento (este mes)')
                 ->descriptionIcon('heroicon-o-calendar')
                 ->color('info'),
 
             // Card del semáforo Óptimo
-            Stat::make('🟢 Óptimo', '≥ 80%')
-                ->description('Excelente cumplimiento')
+            Stat::make('Óptimo', '≥ 80%')
+                ->description('Excelente cumplimiento ')
                 ->descriptionIcon('heroicon-o-arrow-trending-up')
-                ->color($percentage >= 80 ? 'success' : 'gray'),
+                ->descriptionColor('success')
+                ->color('success'),
 
             // Card del semáforo Aceptable
-            Stat::make('🟡 Aceptable', '50% - 79%')
-                ->description('Requiere atención')
+            Stat::make('Aceptable', '50% - 79%')
+                ->description('Requiere atención ')
                 ->descriptionIcon('heroicon-o-minus-circle')
-                ->color($percentage >= 50 && $percentage < 80 ? 'warning' : 'gray'),
+                ->descriptionColor('warning')
+                ->color('warning'),
 
             // Card del semáforo Bajo
-            Stat::make('🔴 Bajo', '< 50%')
-                ->description('Acción inmediata')
+            Stat::make('Bajo', '< 50%')
+                ->description('Acción inmediata ')
                 ->descriptionIcon('heroicon-o-arrow-trending-down')
-                ->color($percentage < 50 && $totalTasksWithDueDate > 0 ? 'danger' : 'gray')
+                ->descriptionColor('danger')
+                ->color('danger')
         ];
     }
 }

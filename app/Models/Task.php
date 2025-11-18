@@ -72,6 +72,23 @@ class Task extends Model
     }
 
     /**
+     * Check if task is overdue
+     */
+    public function isOverdue(): bool
+    {
+        if (! $this->due_date) {
+            return false;
+        }
+
+        // No está vencida si ya fue completada o cancelada
+        if (in_array($this->status, [TaskStatus::Completado, TaskStatus::Cancelada])) {
+            return false;
+        }
+
+        return $this->due_date->isPast();
+    }
+
+    /**
      * Get the user that owns the task
      */
     public function user(): BelongsTo

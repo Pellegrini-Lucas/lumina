@@ -58,12 +58,13 @@ class EventsTable
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->defaultSort('start_time', 'asc')
+            ->searchPlaceholder('Buscar eventos...')
             ->filters([
                 TrashedFilter::make(),
             ])
             ->recordActions([
-                ViewAction::make(),
-                EditAction::make(),
+                ViewAction::make()->label('Ver'),
+                EditAction::make()->label('Editar'),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([

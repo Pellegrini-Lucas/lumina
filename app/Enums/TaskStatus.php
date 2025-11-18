@@ -10,4 +10,5 @@ enum TaskStatus: string
     case EnProgreso = 'en_progreso';
     case Completado = 'completado';
     case Cancelada = 'cancelada';
+    case Vencida = 'vencida';
 }

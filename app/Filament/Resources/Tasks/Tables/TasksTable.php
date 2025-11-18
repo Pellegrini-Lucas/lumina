@@ -43,6 +43,7 @@ class TasksTable
                         TaskStatus::EnProgreso => 'info',
                         TaskStatus::Completado => 'success',
                         TaskStatus::Cancelada => 'danger',
+                        TaskStatus::Vencida => 'danger',
                     }),
 
                 TextColumn::make('priority')
@@ -58,7 +59,16 @@ class TasksTable
                     ->label('Vencimiento')
                     ->dateTime('d/m/Y H:i')
                     ->sortable()
-                    ->color(fn ($state) => $state && $state->isPast() ? 'danger' : null),
+                    ->color(fn ($record) => match (true) {
+                        // Si está completada, verificar si se completó antes o después del vencimiento
+                        $record->status === TaskStatus::Completado && $record->completed_at && $record->due_date && $record->completed_at->isAfter($record->due_date) => 'danger',
+                        $record->status === TaskStatus::Completado => null,
+                        // Si está vencida (pendiente o en progreso y pasó la fecha)
+                        $record->status === TaskStatus::Vencida => 'danger',
+                        $record->due_date && $record->due_date->isPast() => 'danger',
+                        $record->due_date && $record->due_date->isToday() => 'warning',
+                        default => null,
+                    }),
 
                 TextColumn::make('completed_at')
                     ->label('Completada')
@@ -85,6 +95,7 @@ class TasksTable
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->defaultSort('due_date', 'asc')
+            ->searchPlaceholder('Buscar tareas...')
             ->filters([
                 SelectFilter::make('status')
                     ->label('Estado')
@@ -105,8 +116,8 @@ class TasksTable
                 TrashedFilter::make(),
             ])
             ->recordActions([
-                ViewAction::make(),
-                EditAction::make(),
+                ViewAction::make()->label('Ver'),
+                EditAction::make()->label('Editar'),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([

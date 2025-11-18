@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Auth;
 
 class TodayEvents extends TableWidget
 {
-    protected static ?int $sort = 3;
+    protected static ?int $sort = 5;
 
     protected int|string|array $columnSpan = 'full';
 
@@ -26,8 +26,13 @@ class TodayEvents extends TableWidget
         return $table
             ->query(
                 Event::query()
-                    ->where('user_id', Auth::id())
-                    ->where('start_time', '>=', now())
+                    ->where(function ($query) {
+                        $query->where('end_time', '>=', now())
+                            ->orWhere(function ($q) {
+                                $q->where('is_all_day', true)
+                                    ->whereDate('start_time', '>=', today());
+                            });
+                    })
                     ->orderBy('start_time', 'asc')
                     ->limit(10)
             )
@@ -46,7 +51,14 @@ class TodayEvents extends TableWidget
 
                 TextColumn::make('end_time')
                     ->label('Fin')
-                    ->dateTime('H:i')
+                    ->formatStateUsing(function ($record) {
+                        // Si el evento dura más de un día, mostrar fecha completa
+                        if ($record->start_time->format('Y-m-d') !== $record->end_time->format('Y-m-d')) {
+                            return $record->end_time->format('d/m H:i');
+                        }
+                        // Si es el mismo día, solo mostrar la hora
+                        return $record->end_time->format('H:i');
+                    })
                     ->sortable(),
 
                 IconColumn::make('is_all_day')
@@ -56,21 +68,6 @@ class TodayEvents extends TableWidget
                     ->falseIcon('heroicon-o-x-circle')
                     ->trueColor('success')
                     ->falseColor('gray'),
-
-                TextColumn::make('duration')
-                    ->label('Duración')
-                    ->formatStateUsing(function ($record) {
-                        if ($record->is_all_day) {
-                            return 'Todo el día';
-                        }
-                        $diff = $record->start_time->diff($record->end_time);
-
-                        return $diff->h > 0
-                            ? "{$diff->h}h {$diff->i}m"
-                            : "{$diff->i}m";
-                    })
-                    ->badge()
-                    ->color('info'),
             ])
             ->filters([
                 SelectFilter::make('period')
@@ -80,8 +77,14 @@ class TodayEvents extends TableWidget
                         'week' => 'Esta Semana',
                         'month' => 'Este Mes',
                     ])
-                    ->query(function ($query, $state) {
-                        return match ($state['value'] ?? null) {
+                    ->query(function ($query, array $data) {
+                        $value = $data['value'] ?? null;
+                        
+                        if (! $value) {
+                            return $query;
+                        }
+
+                        return match ($value) {
                             'today' => $query->whereDate('start_time', today()),
                             'week' => $query->whereBetween('start_time', [
                                 now()->startOfWeek(),
@@ -93,8 +96,7 @@ class TodayEvents extends TableWidget
                             ]),
                             default => $query,
                         };
-                    })
-                    ->default('week'),
+                    }),
             ])
             ->recordAction(null)
             ->recordUrl(fn ($record) => route('filament.app.resources.events.edit', $record))

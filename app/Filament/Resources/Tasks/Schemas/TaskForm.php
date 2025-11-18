@@ -40,6 +40,7 @@ class TaskForm
                             ->relationship('project', 'name')
                             ->searchable()
                             ->preload()
+                            ->placeholder('Selecciona una opción')
                             ->createOptionForm([
                                 Hidden::make('user_id')
                                     ->default(Auth::id()),
@@ -54,26 +55,31 @@ class TaskForm
                     ->schema([
                         Select::make('status')
                             ->label('Estado')
-                            ->options(TaskStatus::class)
+                            ->options(fn () => [
+                                TaskStatus::Pendiente->value => 'Pendiente',
+                                TaskStatus::EnProgreso->value => 'En Progreso',
+                                TaskStatus::Completado->value => 'Completado',
+                                TaskStatus::Cancelada->value => 'Cancelada',
+                                // Vencida NO está disponible - es automático
+                            ])
                             ->default('pendiente')
                             ->required()
-                            ->native(false),
+                            ->native(false)
+                            ->placeholder('Selecciona una opción')
+                            ->hiddenOn('create'),
 
                         Select::make('priority')
                             ->label('Prioridad')
                             ->options(TaskPriority::class)
                             ->default('media')
                             ->required()
-                            ->native(false),
+                            ->native(false)
+                            ->placeholder('Selecciona una opción'),
 
                         DateTimePicker::make('due_date')
                             ->label('Fecha de Vencimiento')
-                            ->native(false),
-
-                        DateTimePicker::make('completed_at')
-                            ->label('Completada el')
                             ->native(false)
-                            ->disabled(fn ($get) => $get('status') !== 'completed'),
+                            ->columnSpan(fn (string $operation) => $operation === 'create' ? 1 : 2),
                     ])
                     ->columns(2),
             ]);

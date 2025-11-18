@@ -17,7 +17,12 @@ class TasksStatusChart extends ChartWidget
 
     protected int|string|array $columnSpan = 'full';
 
-    protected ?string $maxHeight = '300px';
+    protected ?string $maxHeight = '350px';
+
+    public function getContentHeight(): ?int
+    {
+        return 350;
+    }
 
     protected function getData(): array
     {
@@ -100,9 +105,8 @@ class TasksStatusChart extends ChartWidget
                     'cornerRadius' => 8,
                 ],
             ],
-            'maintainAspectRatio' => true,
+            'maintainAspectRatio' => false,
             'responsive' => true,
-            'aspectRatio' => 1.5,
             'animation' => [
                 'animateRotate' => true,
                 'animateScale' => true,
@@ -120,8 +124,8 @@ class TasksStatusChart extends ChartWidget
             ],
             'layout' => [
                 'padding' => [
-                    'left' => 40,
-                    'right' => 40,
+                    'left' => 'auto',
+                    'right' => 'auto',
                     'top' => 20,
                     'bottom' => 20,
                 ],

@@ -5,6 +5,8 @@ namespace App\Filament\Widgets;
 use App\Enums\TaskPriority;
 use App\Enums\TaskStatus;
 use App\Models\Task;
+use Filament\Actions\Action;
+use Filament\Notifications\Notification;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
@@ -13,7 +15,7 @@ use Illuminate\Support\Facades\Auth;
 
 class UpcomingTasks extends TableWidget
 {
-    protected static ?int $sort = 2;
+    protected static ?int $sort = 3;
 
     protected int|string|array $columnSpan = 'full';
 
@@ -28,7 +30,7 @@ class UpcomingTasks extends TableWidget
             ->query(
                 Task::query()
                     ->where('user_id', Auth::id())
-                    ->where('status', TaskStatus::Pendiente)
+                    ->whereIn('status', [TaskStatus::Pendiente, TaskStatus::EnProgreso, TaskStatus::Vencida])
                     ->whereNotNull('due_date')
                     ->orderBy('due_date', 'asc')
                     ->limit(10)
@@ -40,6 +42,17 @@ class UpcomingTasks extends TableWidget
                     ->sortable()
                     ->limit(40)
                     ->description(fn ($record) => $record->project?->name),
+
+                TextColumn::make('status')
+                    ->label('Estado')
+                    ->badge()
+                    ->color(fn (TaskStatus $state) => match ($state) {
+                        TaskStatus::Pendiente => 'warning',
+                        TaskStatus::EnProgreso => 'info',
+                        TaskStatus::Completado => 'success',
+                        TaskStatus::Cancelada => 'danger',
+                        TaskStatus::Vencida => 'danger',
+                    }),
 
                 TextColumn::make('priority')
                     ->label('Prioridad')
@@ -55,9 +68,14 @@ class UpcomingTasks extends TableWidget
                     ->dateTime('d/m/Y H:i')
                     ->sortable()
                     ->description(fn ($state) => $state->diffForHumans())
-                    ->color(fn ($state) => match (true) {
-                        $state->isPast() => 'danger',
-                        $state->isToday() => 'warning',
+                    ->color(fn ($record) => match (true) {
+                        // Si está completada, verificar si se completó antes o después del vencimiento
+                        $record->status === TaskStatus::Completado && $record->completed_at && $record->due_date && $record->completed_at->isAfter($record->due_date) => 'danger',
+                        $record->status === TaskStatus::Completado => null,
+                        // Si está vencida (pendiente o en progreso y pasó la fecha)
+                        $record->status === TaskStatus::Vencida => 'danger',
+                        $record->due_date->isPast() => 'danger',
+                        $record->due_date->isToday() => 'warning',
                         default => null,
                     }),
 
@@ -66,6 +84,28 @@ class UpcomingTasks extends TableWidget
                     ->counts('subtasks')
                     ->badge()
                     ->color('gray'),
+            ])
+            ->actions([
+                Action::make('complete')
+                    ->label('Completar')
+                    ->icon('heroicon-o-check-circle')
+                    ->color('success')
+                    ->requiresConfirmation()
+                    ->modalHeading('Marcar tarea como completada')
+                    ->modalDescription(fn ($record) => "¿Estás seguro de que quieres marcar '{$record->title}' como completada?")
+                    ->modalSubmitActionLabel('Sí, completar')
+                    ->action(function (Task $record) {
+                        $record->status = TaskStatus::Completado;
+                        $record->completed_at = now();
+                        $record->save();
+
+                        Notification::make()
+                            ->success()
+                            ->title('Tarea completada')
+                            ->body("La tarea '{$record->title}' ha sido marcada como completada.")
+                            ->send();
+                    })
+                    ->visible(fn ($record) => in_array($record->status, [TaskStatus::Pendiente, TaskStatus::EnProgreso, TaskStatus::Vencida])),
             ])
             ->filters([
                 SelectFilter::make('priority')

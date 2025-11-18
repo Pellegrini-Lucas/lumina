@@ -11,6 +11,8 @@ use Illuminate\Support\Facades\Auth;
 
 class StatsOverview extends StatsOverviewWidget
 {
+    protected static ?int $sort = 0;
+
     protected function getStats(): array
     {
         $userId = Auth::id();
@@ -35,7 +37,7 @@ class StatsOverview extends StatsOverviewWidget
 
         return [
             Stat::make('Tareas Pendientes', $pendingTasks)
-                ->description('Total de tareas por completar')
+                ->description('Total de tareas pendientes')
                 ->descriptionIcon('heroicon-o-clipboard-document-list')
                 ->color('warning'),
 

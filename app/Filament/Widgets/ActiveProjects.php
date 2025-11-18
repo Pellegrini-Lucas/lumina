@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Auth;
 
 class ActiveProjects extends TableWidget
 {
-    protected static ?int $sort = 3;
+    protected static ?int $sort = 2;
 
     protected int|string|array $columnSpan = 'full';
 
@@ -27,9 +27,9 @@ class ActiveProjects extends TableWidget
                     ->where('user_id', Auth::id())
                     ->withCount([
                         'tasks',
-                        'tasks as pending_tasks_count' => fn ($query) => $query->where('status', 'pending'),
-                        'tasks as in_progress_tasks_count' => fn ($query) => $query->where('status', 'in_progress'),
-                        'tasks as completed_tasks_count' => fn ($query) => $query->where('status', 'completed'),
+                        'tasks as pending_tasks_count' => fn ($query) => $query->where('status', 'pendiente'),
+                        'tasks as in_progress_tasks_count' => fn ($query) => $query->where('status', 'en_progreso'),
+                        'tasks as completed_tasks_count' => fn ($query) => $query->where('status', 'completado'),
                     ])
                     ->orderByDesc('tasks_count')
             )
@@ -65,30 +65,6 @@ class ActiveProjects extends TableWidget
                     ->badge()
                     ->color('success')
                     ->sortable(),
-
-                TextColumn::make('progress_percentage')
-                    ->label('Progreso')
-                    ->badge()
-                    ->formatStateUsing(function (Project $record) {
-                        if ($record->tasks_count === 0) {
-                            return '0%';
-                        }
-
-                        return round(($record->completed_tasks_count / $record->tasks_count) * 100).'%';
-                    })
-                    ->color(function (Project $record) {
-                        if ($record->tasks_count === 0) {
-                            return 'gray';
-                        }
-                        $percentage = ($record->completed_tasks_count / $record->tasks_count) * 100;
-
-                        return match (true) {
-                            $percentage >= 80 => 'success',
-                            $percentage >= 50 => 'info',
-                            $percentage >= 25 => 'warning',
-                            default => 'danger',
-                        };
-                    }),
 
                 TextColumn::make('created_at')
                     ->label('Creado')
